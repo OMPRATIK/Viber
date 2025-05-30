@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=viberdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - viber-network
+    ports:
+      - "5433:5432"
+
+networks:
+  viber-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
