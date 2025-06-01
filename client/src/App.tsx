@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { authClient } from "./lib/auth-client";
-
+import { authClient } from "./lib/authClient";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "./components/ui/label";
 function App() {
   const [formData, setFormData] = useState({
     username: "",
@@ -26,34 +28,54 @@ function App() {
   };
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="username"
-          value={formData.username}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, username: e.target.value }))
-          }
-        />
-        <input
-          type="email"
-          placeholder="email"
-          value={formData.email}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, email: e.target.value }))
-          }
-        />
-        <input
-          type="password"
-          placeholder="password"
-          value={formData.password}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, password: e.target.value }))
-          }
-        />
-        <button type="submit">Submit</button>
-      </form>
+    <div className="h-screen flex items-center justify-center">
+      <div>
+        <form
+          onSubmit={handleSubmit}
+          className="w-[300px] shadow-sm rounded-md flex flex-col gap-3 p-5 bg-card border border-border"
+        >
+          <header className="mb-4">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              Create Account
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Enter your details to get started
+            </p>
+          </header>
+
+          <Label htmlFor="username">Username</Label>
+          <Input
+            id="username"
+            type="text"
+            placeholder="username"
+            value={formData.username}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, username: e.target.value }))
+            }
+          />
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="email"
+            value={formData.email}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, email: e.target.value }))
+            }
+          />
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="password"
+            value={formData.password}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, password: e.target.value }))
+            }
+          />
+          <Button type="submit">Submit</Button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -4,12 +4,17 @@ import { zValidator } from "@hono/zod-validator";
 import {
   createPostSchema,
   paginationSchema,
-  type SuccessRespones,
+  type PaginatedResponse,
+  type Post,
+  type SuccessResponse,
 } from "@shared/types";
 import { createFactory } from "hono/factory";
 import { post } from "@/db/schemas/post.schema";
+import { user } from "@/db/schemas/auth-schema";
 import { HTTPException } from "hono/http-exception";
-import { and, asc, countDistinct, desc, eq } from "drizzle-orm";
+import { and, asc, countDistinct, desc, eq, sql } from "drizzle-orm";
+import { getISOFromatDateQuery } from "@/lib/utils";
+import { postUpvote } from "@/db/schemas/upvote.schema";
 
 const factory = createFactory<Context>();
 
@@ -33,7 +38,7 @@ export const createPost = factory.createHandlers(
       throw new HTTPException(400, { message: "Failed to create post" });
     }
 
-    return c.json<SuccessRespones<{ postId: number }>>(
+    return c.json<SuccessResponse<{ postId: number }>>(
       {
         success: true,
         message: "Post created successfully",
@@ -48,7 +53,7 @@ export const getPosts = factory.createHandlers(
   zValidator("query", paginationSchema),
   async (c) => {
     const { limit, page, sortBy, order, author, site } = c.req.valid("query");
-    const user = c.get("user");
+    const currUser = c.get("user");
 
     const offset = (page - 1) * limit;
 
@@ -64,5 +69,60 @@ export const getPosts = factory.createHandlers(
           site ? eq(post.url, site) : undefined
         )
       );
+
+    if (!count) {
+      throw new HTTPException(404, { message: "No posts found" });
+    }
+
+    const postsQuery = db
+      .select({
+        id: post.id,
+        title: post.title,
+        url: post.url,
+        content: post.content,
+        createdAt: getISOFromatDateQuery(post.createdAt),
+        commentsCount: post.commentsCount,
+        author: {
+          username: user.name,
+          id: user.id,
+        },
+        isUpvoted: currUser
+          ? sql<boolean>`CASE WHEN ${postUpvote.userId} IS NOT NULL THEN true ELSE false END`
+          : sql<boolean>`false`,
+      })
+      .from(post)
+      .leftJoin(user, eq(post.userId, user.id))
+      .orderBy(sortOrder)
+      .limit(limit)
+      .offset(offset)
+      .where(
+        and(
+          author ? eq(post.userId, author) : undefined,
+          site ? eq(post.url, site) : undefined
+        )
+      );
+
+    if (currUser) {
+      postsQuery.leftJoin(
+        postUpvote,
+        and(eq(postUpvote.postId, post.id), eq(postUpvote.userId, currUser.id))
+      );
+    }
+
+    const posts = await postsQuery;
+
+    if (posts.length === 0) {
+      throw new HTTPException(404, { message: "No posts found" });
+    }
+
+    return c.json<PaginatedResponse<Post>>(
+      {
+        success: true,
+        message: "Posts fetched successfully",
+        data: posts as Post[],
+        pagination: { page, totalPages: Math.ceil(count.count / limit) },
+      },
+      200
+    );
   }
 );

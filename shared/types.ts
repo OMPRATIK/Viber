@@ -1,7 +1,7 @@
 import { insertPostSchema } from "@/db/schemas/post.schema";
 import { z } from "zod";
 
-export type SuccessRespones<T = void> = {
+export type SuccessResponse<T = void> = {
   success: true;
   message: string;
 } & (T extends void ? {} : { data: T });
@@ -34,3 +34,25 @@ export const paginationSchema = z.object({
   author: z.string().optional(),
   site: z.string().optional(),
 });
+
+export type Post = {
+  id: number;
+  title: string;
+  url: string | null;
+  content: string | null;
+  createdAt: string;
+  commentsCount: number;
+  author: {
+    id: string;
+    username: string;
+  };
+  isUpvoted: boolean;
+};
+
+export type PaginatedResponse<T> = {
+  pagination: {
+    page: number;
+    totalPages: number;
+  };
+  data: T[];
+} & Omit<SuccessResponse, "data">;
