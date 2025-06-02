@@ -12,9 +12,10 @@ import { createFactory } from "hono/factory";
 import { post } from "@/db/schemas/post.schema";
 import { user } from "@/db/schemas/auth-schema";
 import { HTTPException } from "hono/http-exception";
-import { and, asc, countDistinct, desc, eq, sql } from "drizzle-orm";
+import { and, asc, countDistinct, desc, eq, is, sql } from "drizzle-orm";
 import { getISOFromatDateQuery } from "@/lib/utils";
 import { postUpvote } from "@/db/schemas/upvote.schema";
+import { z } from "zod";
 
 const factory = createFactory<Context>();
 
@@ -79,7 +80,7 @@ export const getPosts = factory.createHandlers(
         id: post.id,
         title: post.title,
         url: post.url,
-        content: post.content,
+        points: post.points,
         createdAt: getISOFromatDateQuery(post.createdAt),
         commentsCount: post.commentsCount,
         author: {
@@ -121,6 +122,64 @@ export const getPosts = factory.createHandlers(
         message: "Posts fetched successfully",
         data: posts as Post[],
         pagination: { page, totalPages: Math.ceil(count.count / limit) },
+      },
+      200
+    );
+  }
+);
+
+export const upvotePost = factory.createHandlers(
+  zValidator("param", z.object({ id: z.number({ coerce: true }) })),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const currUser = c.get("user")!;
+
+    let pointsChange: -1 | 1 = 1;
+
+    const points = await db.transaction(async (tx) => {
+      const [existingUpvote] = await tx
+        .select()
+        .from(postUpvote)
+        .where(
+          and(eq(postUpvote.postId, id), eq(postUpvote.userId, currUser.id))
+        )
+        .limit(1);
+
+      pointsChange = existingUpvote ? -1 : 1;
+
+      const [updated] = await tx
+        .update(post)
+        .set({
+          points: sql`${post.points} + ${pointsChange}`,
+        })
+        .where(eq(post.id, id))
+        .returning({ points: post.points });
+
+      if (!updated) {
+        throw new HTTPException(404, { message: "Post not found" });
+      }
+
+      if (existingUpvote) {
+        await tx
+          .delete(postUpvote)
+          .where(and(eq(postUpvote.id, existingUpvote.id)));
+      } else {
+        await tx.insert(postUpvote).values({
+          postId: id,
+          userId: currUser.id,
+        });
+      }
+
+      return updated.points;
+    });
+
+    return c.json<SuccessResponse<{ count: number; isUpvoted: boolean }>>(
+      {
+        success: true,
+        message: `Post ${
+          pointsChange > 0 ? "upvoted" : "downvoted"
+        } successfully`,
+        data: { count: points, isUpvoted: pointsChange > 0 },
       },
       200
     );

@@ -40,6 +40,7 @@ export type Post = {
   title: string;
   url: string | null;
   content: string | null;
+  points: number;
   createdAt: string;
   commentsCount: number;
   author: {
