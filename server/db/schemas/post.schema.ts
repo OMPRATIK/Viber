@@ -34,12 +34,7 @@ export const postRelation = relations(post, ({ one, many }) => ({
   author: one(user, {
     fields: [post.userId],
     references: [user.id],
-    relationName: "author",
   }),
-  postUpvote: many(postUpvote, {
-    relationName: "postUpvote",
-  }),
-  comment: many(comment, {
-    relationName: "comment",
-  }),
+  postUpvote: many(postUpvote),
+  comment: many(comment),
 }));

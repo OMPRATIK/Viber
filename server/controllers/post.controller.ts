@@ -13,7 +13,7 @@ import { post } from "@/db/schemas/post.schema";
 import { user } from "@/db/schemas/auth-schema";
 import { HTTPException } from "hono/http-exception";
 import { and, asc, countDistinct, desc, eq, is, sql } from "drizzle-orm";
-import { getISOFromatDateQuery } from "@/lib/utils";
+import { getISOFormatDateQuery } from "@/lib/utils";
 import { postUpvote } from "@/db/schemas/upvote.schema";
 import { z } from "zod";
 
@@ -57,7 +57,6 @@ export const getPosts = factory.createHandlers(
     const currUser = c.get("user");
 
     const offset = (page - 1) * limit;
-
     const sortByColumn = sortBy === "points" ? post.points : post.createdAt;
     const sortOrder = order === "asc" ? asc(sortByColumn) : desc(sortByColumn);
 
@@ -81,7 +80,7 @@ export const getPosts = factory.createHandlers(
         title: post.title,
         url: post.url,
         points: post.points,
-        createdAt: getISOFromatDateQuery(post.createdAt),
+        createdAt: getISOFormatDateQuery(post.createdAt),
         commentsCount: post.commentsCount,
         author: {
           username: user.name,

@@ -17,12 +17,10 @@ export const postUpvoteRelation = relations(postUpvote, ({ one }) => ({
   post: one(post, {
     fields: [postUpvote.postId],
     references: [post.id],
-    relationName: "postUpvote",
   }),
   user: one(user, {
     fields: [postUpvote.userId],
     references: [user.id],
-    relationName: "user",
   }),
 }));
 
@@ -39,11 +37,9 @@ export const commentUpvoteRelation = relations(commentUpvote, ({ one }) => ({
   comment: one(comment, {
     fields: [commentUpvote.commentId],
     references: [comment.id],
-    relationName: "commentUpvotes",
   }),
   user: one(user, {
     fields: [commentUpvote.userId],
     references: [user.id],
-    relationName: "user",
   }),
 }));

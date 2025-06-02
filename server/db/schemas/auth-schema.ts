@@ -1,4 +1,8 @@
+import { relations } from "drizzle-orm";
 import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { post } from "./post.schema";
+import { comment } from "./comment.schema";
+import { commentUpvote, postUpvote } from "./upvote.schema";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -59,3 +63,10 @@ export const verification = pgTable("verification", {
     () => /* @__PURE__ */ new Date()
   ),
 });
+
+export const userRelations = relations(user, ({ many }) => ({
+  post: many(post),
+  comment: many(comment),
+  postUpvote: many(postUpvote),
+  commentUpvote: many(commentUpvote),
+}));
