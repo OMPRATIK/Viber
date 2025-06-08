@@ -14,9 +14,10 @@ app.use("*", cors({ origin: "http://localhost:5173", credentials: true }));
 app.use("*", setSession);
 app.on(["POST", "GET"], "/api/auth/**", (c) => auth.handler(c.req.raw));
 
-app.basePath("/api/v1").route("/posts", postRouter);
+const routes = app.basePath("/api/v1").route("/posts", postRouter);
 
 app.onError(errorHandler);
 app.notFound(notFound);
 
 export default app;
+export type ApiRoutes = typeof routes;

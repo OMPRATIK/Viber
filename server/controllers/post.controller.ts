@@ -2,8 +2,10 @@ import { db } from "@/lib/adapter";
 import type { Context } from "@/lib/context";
 import { zValidator } from "@hono/zod-validator";
 import {
+  createCommentSchema,
   createPostSchema,
   paginationSchema,
+  type Comment,
   type PaginatedResponse,
   type Post,
   type SuccessResponse,
@@ -16,10 +18,11 @@ import { and, asc, countDistinct, desc, eq, is, sql } from "drizzle-orm";
 import { getISOFormatDateQuery } from "@/lib/utils";
 import { postUpvote } from "@/db/schemas/upvote.schema";
 import { z } from "zod";
+import { comment } from "@/db/schemas/comment.schema";
 
-const factory = createFactory<Context>();
+const { createHandlers } = createFactory<Context>();
 
-export const createPost = factory.createHandlers(
+export const createPost = createHandlers(
   zValidator("form", createPostSchema),
   async (c) => {
     const { title, url, content } = c.req.valid("form");
@@ -50,7 +53,7 @@ export const createPost = factory.createHandlers(
   }
 );
 
-export const getPosts = factory.createHandlers(
+export const getPosts = createHandlers(
   zValidator("query", paginationSchema),
   async (c) => {
     const { limit, page, sortBy, order, author, site } = c.req.valid("query");
@@ -127,7 +130,7 @@ export const getPosts = factory.createHandlers(
   }
 );
 
-export const upvotePost = factory.createHandlers(
+export const upvotePost = createHandlers(
   zValidator("param", z.object({ id: z.number({ coerce: true }) })),
   async (c) => {
     const { id } = c.req.valid("param");
@@ -182,5 +185,59 @@ export const upvotePost = factory.createHandlers(
       },
       200
     );
+  }
+);
+
+export const commentPost = createHandlers(
+  zValidator("param", z.object({ id: z.number() })),
+  zValidator("form", createCommentSchema),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const { content } = c.req.valid("form");
+    const user = c.get("user")!;
+
+    const [newComment] = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(post)
+        .set({ commentsCount: sql`${post.commentsCount} + 1` })
+        .where(eq(post.id, id))
+        .returning({ commentsCount: post.commentsCount });
+
+      if (!updated) {
+        throw new HTTPException(404, { message: "Post not found" });
+      }
+
+      return await tx
+        .insert(comment)
+        .values({
+          content,
+          userId: user.id,
+          postId: id,
+        })
+        .returning({
+          id: comment.id,
+          userId: comment.userId,
+          content: comment.content,
+          points: comment.points,
+          parentCommentId: comment.parentCommentId,
+          createdAt: getISOFormatDateQuery(comment.createdAt),
+          commentsCount: comment.commentsCount,
+          depth: comment.depth,
+        });
+    });
+
+    return c.json<SuccessResponse<Comment>>({
+      success: true,
+      message: "Comment added successfully",
+      data: {
+        ...newComment,
+        commentUpvotes: [],
+        childComments: [],
+        author: {
+          username: user.name,
+          id: user.id,
+        },
+      } as Comment,
+    });
   }
 );
