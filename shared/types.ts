@@ -48,7 +48,7 @@ export type Post = {
   commentsCount: number;
   author: {
     id: string;
-    username: string;
+    name: string;
   };
   isUpvoted: boolean;
 };
@@ -62,14 +62,14 @@ export type Comment = {
   commentsCount: number;
   createdAt: string;
   parentCommentId: number | null;
-  commentUpvotes: {
+  commentUpvote: {
     userId: string;
   }[];
   author: {
-    username: string;
+    name: string;
     id: string;
   };
-  childComments: Comment[];
+  childComment?: Comment[];
 };
 
 export type PaginatedResponse<T> = {
@@ -77,5 +77,5 @@ export type PaginatedResponse<T> = {
     page: number;
     totalPages: number;
   };
-  data: T[];
+  data: T;
 } & Omit<SuccessResponse, "data">;

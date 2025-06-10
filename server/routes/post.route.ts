@@ -5,6 +5,8 @@ import { protectedRoute } from "@/middlewares/auth.middleware";
 import {
   commentPost,
   createPost,
+  getComments,
+  getPostById,
   getPosts,
   upvotePost,
 } from "@/controllers/post.controller";
@@ -13,4 +15,6 @@ export const postRouter = new Hono<Context>()
   .post("/", protectedRoute, ...createPost)
   .get("/", ...getPosts)
   .post("/:id/upvote", protectedRoute, ...upvotePost)
-  .post("/:id/commment", protectedRoute, ...commentPost);
+  .post("/:id/comment", protectedRoute, ...commentPost)
+  .get("/:id/comments", ...getComments)
+  .get("/:id", ...getPostById);
