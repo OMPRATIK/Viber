@@ -322,7 +322,7 @@ export const getComments = createHandlers(
               columns: {
                 userId: true,
               },
-              where: eq(commentUpvote.userId, user?.id ?? ""),
+              where: eq(commentUpvote.userId, user?.id ?? undefined),
               limit: 1,
             },
           },
