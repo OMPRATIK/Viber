@@ -4,15 +4,18 @@ import { zValidator } from "@hono/zod-validator";
 import { createFactory } from "hono/factory";
 import {
   createCommentSchema,
+  paginationSchema,
   type Comment,
+  type PaginatedResponse,
   type SuccessResponse,
 } from "@shared/types";
 import { db } from "@/lib/adapter";
 import { comment } from "@/db/schemas/comment.schema";
-import { eq, sql } from "drizzle-orm";
+import { and, asc, countDistinct, desc, eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { post } from "@/db/schemas/post.schema";
 import { getISOFormatDateQuery } from "@/lib/utils";
+import { commentUpvote } from "@/db/schemas/upvote.schema";
 
 const { createHandlers } = createFactory<Context>();
 
@@ -105,5 +108,118 @@ export const upvoteComment = createHandlers(
   async (c) => {
     const { id } = c.req.valid("param");
     const currUser = c.get("user")!;
+    let pointsChange: -1 | 1 = 1;
+
+    const points = await db.transaction(async (tx) => {
+      const [existingUpvote] = await tx
+        .select()
+        .from(commentUpvote)
+        .where(
+          and(
+            eq(commentUpvote.commentId, id),
+            eq(commentUpvote.userId, currUser.id)
+          )
+        )
+        .limit(1);
+
+      pointsChange = existingUpvote ? -1 : 1;
+
+      const [updated] = await tx
+        .update(comment)
+        .set({ points: sql`${comment.points} + ${pointsChange}` })
+        .where(eq(comment.id, id))
+        .returning({ points: comment.points });
+
+      if (!updated) {
+        throw new HTTPException(404, { message: "Comment not found" });
+      }
+
+      if (existingUpvote) {
+        await tx
+          .delete(commentUpvote)
+          .where(eq(commentUpvote.id, existingUpvote.id));
+      } else {
+        await tx
+          .insert(commentUpvote)
+          .values({ commentId: id, userId: currUser.id });
+      }
+
+      return updated.points;
+    });
+
+    return c.json<
+      SuccessResponse<{ count: number; commentUpvotes: { userId: string }[] }>
+    >({
+      success: true,
+      message: `Comment ${
+        pointsChange > 0 ? "upvoted" : "downvoted"
+      } successfully`,
+      data: {
+        count: points,
+        commentUpvotes: pointsChange > 0 ? [{ userId: currUser.id }] : [],
+      },
+    });
+  }
+);
+
+export const getCommentsByPostId = createHandlers(
+  zValidator("param", z.object({ id: z.number({ coerce: true }) })),
+  zValidator("query", paginationSchema),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const currUser = c.get("user");
+
+    const { limit, page, sortBy, order } = c.req.valid("query");
+    const offset = (page - 1) * limit;
+
+    const sortByColumn =
+      sortBy === "points" ? comment.points : comment.createdAt;
+    const sortOrder = order === "asc" ? asc(sortByColumn) : desc(sortByColumn);
+
+    const [count] = await db
+      .select({
+        count: countDistinct(comment.id),
+      })
+      .from(comment)
+      .where(eq(comment.parentCommentId, id));
+
+    if (!count) {
+      throw new HTTPException(404, { message: "No comments found" });
+    }
+
+    const comments = await db.query.comment.findMany({
+      where: and(eq(comment.parentCommentId, id)),
+      orderBy: sortOrder,
+      limit,
+      offset,
+      with: {
+        author: {
+          columns: {
+            name: true,
+            id: true,
+          },
+        },
+        commentUpvote: {
+          columns: {
+            userId: true,
+          },
+          where: eq(commentUpvote.userId, currUser?.id ?? ""),
+          limit: 1,
+        },
+      },
+      extras: {
+        createdAt: getISOFormatDateQuery(comment.createdAt).as("created_at"),
+      },
+    });
+
+    return c.json<PaginatedResponse<Comment[]>>({
+      success: true,
+      message: "Comments fetched successfully",
+      data: comments as Comment[],
+      pagination: {
+        page,
+        totalPages: Math.ceil(count.count / limit),
+      },
+    });
   }
 );
