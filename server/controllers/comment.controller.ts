@@ -72,7 +72,7 @@ export const postComment = createHandlers(
           postId: postId,
           parentCommentId: parentComment.id,
           content: content,
-          depth: parentComment.depth + 1,
+          depth: sql`${parentComment.depth} + 1`,
         })
         .returning({
           id: comment.id,
