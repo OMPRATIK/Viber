@@ -1,8 +1,22 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
+import {
+  Activity,
+  Bookmark,
+  Briefcase,
+  Calendar,
+  ChartNoAxesColumn,
+  Folder,
+  Home,
+  Inbox,
+  Library,
+  Search,
+  Settings,
+  Settings2,
+} from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -11,33 +25,42 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { SidebarOptInForm } from "./sidebar-opt-in";
 
 // Menu items.
-const items = [
+const application = [
   {
-    title: "Home",
+    title: "Stories",
     url: "#",
-    icon: Home,
+    icon: Library,
   },
   {
-    title: "Inbox",
+    title: "Showcase",
     url: "#",
-    icon: Inbox,
+    icon: Folder,
   },
   {
-    title: "Calendar",
+    title: "Jobs",
     url: "#",
-    icon: Calendar,
+    icon: Briefcase,
   },
   {
-    title: "Search",
+    title: "Leaderboard",
     url: "#",
-    icon: Search,
+    icon: ChartNoAxesColumn,
+  },
+];
+
+const profile = [
+  {
+    title: "Activity",
+    url: "#",
+    icon: Activity,
   },
   {
     title: "Settings",
     url: "#",
-    icon: Settings,
+    icon: Settings2,
   },
 ];
 
@@ -55,7 +78,24 @@ export function AppSidebar() {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {application.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Profile</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {profile.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -69,6 +109,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarOptInForm />
+      </SidebarFooter>
     </Sidebar>
   );
 }
