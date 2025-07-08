@@ -69,7 +69,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <a href="#" className="flex items-center gap-2.5 p-2">
-          <img src="logo.svg" alt="Logo" className="size-8" />
+          <img src="logo.svg" alt="Logo" className="size-7" />
           <span className="text-3xl">Viber</span>
         </a>
       </SidebarHeader>

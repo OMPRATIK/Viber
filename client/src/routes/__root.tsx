@@ -20,8 +20,8 @@ function RootComponent() {
           <Outlet />
         </main>
       </SidebarProvider>
-      {/* <ReactQueryDevtools /> */}
-      {/* <TanStackRouterDevtools position="bottom-left" /> */}
+      <ReactQueryDevtools />
+      <TanStackRouterDevtools position="bottom-left" />
     </ThemeProvider>
   );
 }
